@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% from "macros.html" import score_ring, score_bar, chip_list, bullet_list %}
+{% block title %}Compare candidates{% endblock %}
+{% block content %}
+<a class="small text-decoration-none" href="{{ url_for('job_applications', job_id=job.id) }}"><i class="bi bi-arrow-left"></i> Rankings</a>
+<h1 class="h3 fw-bold mt-2 mb-4">Compare candidates · <span class="text-body-secondary fw-normal">{{ job.title }}</span></h1>
+
+{% set all_skills = [] %}
+{% for app, r in rows %}{% for s in r.skill_evidence %}{% if s.skill not in all_skills %}{% set _ = all_skills.append(s.skill) %}{% endif %}{% endfor %}{% endfor %}
+
+<div class="row g-3 mb-4">
+  {% for app, r in rows %}
+  {% set e = app.latest %}
+  <div class="col-md-6 col-xl">
+    <div class="card card-soft h-100"><div class="card-body p-4">
+      <div class="text-center mb-3">
+        {{ score_ring(e.overall, 'lg') }}
+        <div class="fw-semibold mt-2">{{ app.candidate.name }}</div>
+        {% if r.hirer_assessment.recommendation %}<div class="small text-body-secondary text-capitalize">{{ r.hirer_assessment.recommendation }}</div>{% endif %}
+      </div>
+      {{ score_bar('Depth', e.deepness) }}
+      {{ score_bar('Spread', e.spread) }}
+      {{ score_bar('Evidence', e.evidence) }}
+      <hr>
+      <div class="small fw-semibold mb-1">Strengths</div>
+      <div class="small mb-3">{{ bullet_list(r.hirer_assessment.strengths[:3]) }}</div>
+      <div class="small fw-semibold mb-1">Concerns</div>
+      <div class="small mb-3">{{ bullet_list(r.hirer_assessment.concerns[:3]) }}</div>
+      <a class="btn btn-sm btn-outline-primary w-100" href="{{ url_for('view_application', application_id=app.id) }}">Full evaluation</a>
+    </div></div>
+  </div>
+  {% endfor %}
+</div>
+
+{% if all_skills %}
+<div class="card card-soft"><div class="card-body p-4">
+  <h2 class="h6 fw-semibold mb-3">Skill evidence side by side</h2>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead><tr><th>Skill</th>{% for app, r in rows %}<th class="text-center">{{ app.candidate.name }}</th>{% endfor %}</tr></thead>
+      <tbody>
+      {% for skill in all_skills %}
+        <tr><td class="fw-medium">{{ skill }}</td>
+        {% for app, r in rows %}
+          {% set found = r.skill_evidence|selectattr('skill', 'equalto', skill)|first %}
+          <td class="text-center">
+            {% if found %}<span class="fw-semibold text-{{ found.score|score_class }}" title="{{ found.evidence }}">{{ found.score }}</span>
+              <span class="level-dots ms-1">{% for i in range(5) %}<i class="{{ 'on' if i < found.level else '' }}"></i>{% endfor %}</span>
+            {% else %}<span class="text-body-secondary">—</span>{% endif %}
+          </td>
+        {% endfor %}</tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div></div>
+{% endif %}
+{% endblock %}

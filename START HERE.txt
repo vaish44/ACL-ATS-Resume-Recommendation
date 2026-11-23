@@ -1,0 +1,52 @@
+ATS_Application - Resume Recommendation
+==========================
+
+ATS_Application helps you rank candidates by what they have actually built, not by keywords.
+Candidates upload resumes and apply to jobs. Hirers post jobs and see ranked,
+explained scores for every applicant.
+
+
+BEFORE THE FIRST START (one time only)
+--------------------------------------
+1. Python must be installed on the computer.
+   - Windows: download it from https://www.python.org/downloads/
+     IMPORTANT: on the first installer screen, tick "Add python.exe to PATH".
+   - Mac: download it from https://www.python.org/downloads/ and install it normally.
+2. The first start needs an internet connection. It downloads the app's
+   components, which takes about 2-5 minutes. Later starts take a few seconds.
+
+
+HOW TO START
+------------
+Windows : double-click  run.bat
+Mac     : open Terminal, drag the  run.sh  file into the window, press Enter
+Linux   : run  ./run.sh  in a terminal
+
+Your browser opens automatically at  http://127.0.0.1:1114
+Keep the black window open while you use ATS_Application. Close it to stop ATS_Application.
+
+
+FIRST STEPS IN THE APP
+----------------------
+1. Click "Create an account" and choose "Hirer".
+2. Click "Post a job" and paste the full job description.
+3. Candidates create their own "Candidate" accounts, upload a resume and apply.
+4. Open your job and click "Rankings" to see candidates sorted by score.
+   - Click "View evaluation" for the full breakdown and skill evidence.
+   - Tick 2-4 candidates and click "Compare" to see them side by side.
+
+
+IF SOMETHING GOES WRONG
+-----------------------
+- "Python was not found": install Python (see above) and tick "Add to PATH".
+- "AI is overloaded, try again in a minute": the AI service is busy. Wait a
+  minute, then click "Run AI analysis" on the job page, or "Re-evaluate" on the
+  evaluation page. Your data is saved.
+- The first start failed partway: delete the "venv" folder and start again.
+- The page will not open: make sure the black window is still open, then go to
+  http://127.0.0.1:1114 in your browser.
+
+All data (accounts, jobs, resumes) is saved in the "data" folder on this computer.
+Back up that folder to keep your data.
+
+AI settings are in env_app.py. Only change them if IT asks you to.

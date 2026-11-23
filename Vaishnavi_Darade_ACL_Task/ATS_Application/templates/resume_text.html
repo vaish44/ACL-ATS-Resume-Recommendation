@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Extracted text{% endblock %}
+{% block content %}
+<a class="small text-decoration-none" href="{{ url_for('dashboard') }}"><i class="bi bi-arrow-left"></i> Dashboard</a>
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mt-2 mb-3">
+  <h1 class="h4 fw-bold mb-0">{{ resume.original_name }} <span class="text-body-secondary fw-normal">v{{ resume.version }}</span></h1>
+  <span class="small text-body-secondary">Method: {{ resume.extraction_method }} · Status: {{ resume.extraction_status }}</span>
+</div>
+<div class="card card-soft"><div class="card-body p-4">
+  {% if resume.extracted_text %}<pre class="extracted-text mb-0">{{ resume.extracted_text }}</pre>
+  {% else %}<p class="text-body-secondary mb-0">No text could be extracted from this file.</p>{% endif %}
+</div></div>
+{% endblock %}

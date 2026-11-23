@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% from "macros.html" import score_ring %}
+{% block title %}Rankings · {{ job.title }}{% endblock %}
+{% block content %}
+<a class="small text-decoration-none" href="{{ url_for('job_details', job_id=job.id) }}"><i class="bi bi-arrow-left"></i> {{ job.title }}</a>
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mt-2 mb-4">
+  <div>
+    <h1 class="h3 fw-bold mb-0">Candidate rankings</h1>
+    <p class="text-body-secondary mb-0">{{ applications|length }} candidate{{ '' if applications|length == 1 else 's' }}{% if skill %} with evidence of "{{ skill }}"{% endif %}</p>
+  </div>
+  <form method="get" class="d-flex flex-wrap gap-2">
+    <select class="form-select" name="sort" onchange="this.form.submit()" aria-label="Sort by">
+      {% for value, label in [('overall', 'Sort: Overall'), ('deepness', 'Sort: Depth'), ('spread', 'Sort: Spread'), ('evidence', 'Sort: Evidence')] %}
+      <option value="{{ value }}" {% if sort == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <input class="form-control" name="skill" value="{{ skill }}" list="skillOptions" placeholder="Filter by skill" style="max-width: 180px">
+    <datalist id="skillOptions">{% for s in skill_options %}<option value="{{ s }}">{% endfor %}</datalist>
+    <button class="btn btn-outline-secondary" type="submit"><i class="bi bi-funnel"></i></button>
+    {% if skill %}<a class="btn btn-link" href="{{ url_for('job_applications', job_id=job.id, sort=sort) }}">Clear</a>{% endif %}
+  </form>
+</div>
+
+{% if applications %}
+<form method="get" action="{{ url_for('compare', job_id=job.id) }}" id="compareForm">
+  <div class="compare-bar card card-soft mb-3 d-none" id="compareBar">
+    <div class="card-body py-2 d-flex justify-content-between align-items-center">
+      <span class="small"><b id="compareCount">0</b> selected (2–4)</span>
+      <button class="btn btn-sm btn-primary" type="submit" id="compareButton" disabled><i class="bi bi-layout-split me-1"></i>Compare</button>
+    </div>
+  </div>
+  <div class="d-flex flex-column gap-3">
+    {% for app in applications %}
+    {% set e = app.latest %}
+    {% set r = e.load('result') if e else {} %}
+    <div class="card card-soft rank-card">
+      <div class="card-body p-3 p-md-4">
+        <div class="row g-3 align-items-center">
+          <div class="col-auto d-flex align-items-center gap-3">
+            <input class="form-check-input compare-check m-0" type="checkbox" name="ids" value="{{ app.id }}" {% if not e %}disabled title="Not evaluated yet"{% endif %} aria-label="Select for comparison">
+            <span class="rank-number">#{{ loop.index }}</span>
+            {% if e %}{{ score_ring(e.overall, 'md') }}{% else %}<div class="score-ring score-ring-md text-secondary" style="--value: 0"><span>–</span></div>{% endif %}
+          </div>
+          <div class="col">
+            <div class="fw-semibold">{{ app.candidate.name }}</div>
+            <div class="small text-body-secondary mb-2">{{ app.candidate.headline or app.candidate.email }} · resume v{{ app.resume.version }}</div>
+            {% if e %}
+            <div class="d-flex flex-wrap gap-3 small mb-2">
+              <span class="{{ 'fw-bold' if sort == 'deepness' }}">Depth <b class="text-{{ e.deepness|score_class }}">{{ e.deepness|round|int }}</b></span>
+              <span class="{{ 'fw-bold' if sort == 'spread' }}">Spread <b class="text-{{ e.spread|score_class }}">{{ e.spread|round|int }}</b></span>
+              <span class="{{ 'fw-bold' if sort == 'evidence' }}">Evidence <b class="text-{{ e.evidence|score_class }}">{{ e.evidence|round|int }}</b></span>
+              {% if r.hirer_assessment.recommendation %}<span class="text-capitalize text-body-secondary">· {{ r.hirer_assessment.recommendation }}</span>{% endif %}
+            </div>
+            <div class="d-flex flex-wrap gap-1">
+              {% for m in r.matching_requirements[:6] %}<span class="chip chip-success">{{ m }}</span>{% endfor %}
+              {% for m in r.missing_requirements if m.mandatory %}{% if loop.index <= 4 %}<span class="chip chip-{{ 'danger' if m.type == 'missing' else 'warning' }}">{{ m.skill }}</span>{% endif %}{% endfor %}
+            </div>
+            {% else %}
+            <div class="small text-body-secondary">{{ app.error or 'Awaiting evaluation.' }}</div>
+            {% endif %}
+          </div>
+          <div class="col-12 col-md-auto d-flex gap-2">
+            <a class="btn btn-sm btn-primary" href="{{ url_for('view_application', application_id=app.id) }}">{{ 'View evaluation' if e else 'Open' }}</a>
+            <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('resume_file', resume_id=app.resume_id) }}" target="_blank" rel="noopener" title="Original resume"><i class="bi bi-file-earmark-text"></i></a>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</form>
+{% else %}
+<div class="card card-soft"><div class="empty-state"><i class="bi bi-people fs-1"></i><p class="mb-0">{{ 'No candidates match this filter.' if skill else 'No applications yet.' }}</p></div></div>
+{% endif %}
+{% endblock %}

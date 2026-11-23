@@ -1,0 +1,42 @@
+{% macro score_ring(score, size='lg', label='') %}
+<div class="score-ring score-ring-{{ size }} text-{{ score|score_class }}" style="--value: {{ score|round|int }}">
+  <span>{{ score|round|int }}</span>
+</div>
+{% if label %}<div class="small text-body-secondary mt-1">{{ label }}</div>{% endif %}
+{% endmacro %}
+
+{% macro score_bar(label, score, weight='') %}
+<div class="mb-3">
+  <div class="d-flex justify-content-between small mb-1">
+    <span class="fw-medium">{{ label }}{% if weight %} <span class="text-body-secondary">· {{ weight }}</span>{% endif %}</span>
+    <span class="fw-semibold">{{ score|round|int }}</span>
+  </div>
+  <div class="progress" role="progressbar" style="height: 8px">
+    <div class="progress-bar bg-{{ score|score_class }}" style="width: {{ score|round|int }}%"></div>
+  </div>
+</div>
+{% endmacro %}
+
+{% macro status_badge(application) %}
+{% if application.latest %}
+<span class="badge rounded-pill text-bg-{{ application.latest.overall|score_class }}">{{ application.latest.overall|round|int }} / 100</span>
+{% else %}
+<span class="badge rounded-pill text-bg-secondary">Awaiting evaluation</span>
+{% endif %}
+{% endmacro %}
+
+{% macro csrf() %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endmacro %}
+
+{% macro chip_list(items, style='secondary', empty='None') %}
+{% if items %}
+<div class="d-flex flex-wrap gap-1">
+  {% for item in items %}<span class="chip chip-{{ style }}">{{ item }}</span>{% endfor %}
+</div>
+{% else %}<span class="text-body-secondary small">{{ empty }}</span>{% endif %}
+{% endmacro %}
+
+{% macro bullet_list(items, empty='Nothing noted.') %}
+{% if items %}
+<ul class="list-clean">{% for item in items %}<li>{{ item }}</li>{% endfor %}</ul>
+{% else %}<p class="text-body-secondary small mb-0">{{ empty }}</p>{% endif %}
+{% endmacro %}

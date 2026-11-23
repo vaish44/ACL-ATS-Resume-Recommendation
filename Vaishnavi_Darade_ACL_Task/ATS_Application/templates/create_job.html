@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf %}
+{% block title %}{{ 'Edit job' if editing else 'Post a job' }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-9">
+    <h1 class="h3 fw-bold mb-1">{{ 'Edit job' if editing else 'Post a new job' }}</h1>
+    <p class="text-body-secondary mb-4">Write the full description. AI reads it to separate mandatory and preferred requirements — the fields below are hints, not the only signal.</p>
+    <form method="post" class="card card-soft" data-loading="Saving and analysing the job...">
+      {{ csrf() }}
+      <div class="card-body p-4">
+        <div class="row g-3">
+          <div class="col-md-8">
+            <label class="form-label" for="title">Job title *</label>
+            <input class="form-control" id="title" name="title" value="{{ job.title or '' }}" required maxlength="200" placeholder="e.g. Machine Learning Engineer">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label" for="experience">Experience</label>
+            <input class="form-control" id="experience" name="experience" value="{{ job.experience or '' }}" maxlength="200" placeholder="e.g. 2-4 years">
+          </div>
+          <div class="col-12">
+            <label class="form-label" for="description">Job description *</label>
+            <textarea class="form-control" id="description" name="description" rows="7" required minlength="30" placeholder="Responsibilities, the problems this person will solve, team context...">{{ job.description or '' }}</textarea>
+          </div>
+          {% for field, label, hint in [
+            ('required_skills', 'Required skills', 'Python, PyTorch, SQL'),
+            ('preferred_skills', 'Preferred skills', 'LangGraph, Kubernetes'),
+            ('languages', 'Programming languages', 'Python, Go'),
+            ('frameworks', 'Frameworks & libraries', 'scikit-learn, FastAPI'),
+            ('algorithms', 'Algorithms & models', 'XGBoost, Transformers'),
+            ('databases', 'Databases', 'PostgreSQL, Pinecone'),
+            ('cloud', 'Cloud technologies', 'AWS SageMaker, GCP'),
+            ('qualifications', 'Additional qualifications', 'Degree, certifications')] %}
+          <div class="col-md-6">
+            <label class="form-label" for="{{ field }}">{{ label }}</label>
+            <input class="form-control" id="{{ field }}" name="{{ field }}" value="{{ job[field] or '' }}" placeholder="{{ hint }}">
+          </div>
+          {% endfor %}
+          <div class="col-12">
+            <label class="form-label" for="project_requirements">Project requirements</label>
+            <textarea class="form-control" id="project_requirements" name="project_requirements" rows="3" placeholder="e.g. Has deployed a model to production; worked with imbalanced real-world data">{{ job.project_requirements or '' }}</textarea>
+          </div>
+        </div>
+      </div>
+      <div class="card-footer bg-transparent p-4 d-flex justify-content-end gap-2">
+        <a class="btn btn-outline-secondary" href="{{ url_for('job_details', job_id=job.id) if editing else url_for('dashboard') }}">Cancel</a>
+        <button class="btn btn-primary" type="submit">{{ 'Save changes' if editing else 'Publish job' }}</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

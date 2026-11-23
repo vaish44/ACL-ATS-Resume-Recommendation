@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf %}
+{% block title %}Profile{% endblock %}
+{% block content %}
+<div class="row justify-content-center g-4">
+  <div class="col-lg-7">
+    <form method="post" class="card card-soft">
+      {{ csrf() }}
+      <input type="hidden" name="action" value="profile">
+      <div class="card-body p-4">
+        <h1 class="h5 fw-semibold mb-3">Profile</h1>
+        <div class="row g-3">
+          <div class="col-md-6"><label class="form-label" for="name">Full name</label>
+            <input class="form-control" id="name" name="name" value="{{ user.name }}" required maxlength="120"></div>
+          <div class="col-md-6"><label class="form-label">Email</label>
+            <input class="form-control" value="{{ user.email }}" disabled></div>
+          <div class="col-12"><label class="form-label" for="headline">Headline</label>
+            <input class="form-control" id="headline" name="headline" value="{{ user.headline or '' }}" maxlength="200" placeholder="{{ 'e.g. ML Engineer · 3 years' if user.role == 'candidate' else 'e.g. Engineering Manager' }}"></div>
+          {% if user.role == 'hirer' %}
+          <div class="col-md-6"><label class="form-label" for="company">Company</label>
+            <input class="form-control" id="company" name="company" value="{{ user.company or '' }}" maxlength="160"></div>
+          {% endif %}
+          <div class="col-md-6"><label class="form-label" for="phone">Phone</label>
+            <input class="form-control" id="phone" name="phone" value="{{ user.phone or '' }}" maxlength="40"></div>
+          <div class="col-md-6"><label class="form-label" for="location">Location</label>
+            <input class="form-control" id="location" name="location" value="{{ user.location or '' }}" maxlength="120"></div>
+          <div class="col-12"><label class="form-label" for="about">About</label>
+            <textarea class="form-control" id="about" name="about" rows="4" maxlength="3000">{{ user.about or '' }}</textarea></div>
+        </div>
+      </div>
+      <div class="card-footer bg-transparent p-4 text-end"><button class="btn btn-primary" type="submit">Save profile</button></div>
+    </form>
+  </div>
+  <div class="col-lg-5">
+    <form method="post" class="card card-soft">
+      {{ csrf() }}
+      <input type="hidden" name="action" value="password">
+      <div class="card-body p-4">
+        <h2 class="h5 fw-semibold mb-3">Change password</h2>
+        <div class="mb-3"><label class="form-label" for="current_password">Current password</label>
+          <input class="form-control" type="password" id="current_password" name="current_password" required autocomplete="current-password"></div>
+        <div class="mb-3"><label class="form-label" for="new_password">New password</label>
+          <input class="form-control" type="password" id="new_password" name="new_password" required minlength="8" autocomplete="new-password">
+          <div class="form-text">At least 8 characters with a letter and a number.</div></div>
+        <div class="mb-1"><label class="form-label" for="confirm_password">Confirm new password</label>
+          <input class="form-control" type="password" id="confirm_password" name="confirm_password" required autocomplete="new-password"></div>
+      </div>
+      <div class="card-footer bg-transparent p-4 text-end"><button class="btn btn-outline-primary" type="submit">Update password</button></div>
+    </form>
+  </div>
+</div>
+{% endblock %}

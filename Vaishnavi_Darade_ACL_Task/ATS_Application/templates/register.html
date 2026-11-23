@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf %}
+{% block title %}Register{% endblock %}
+{% block content %}
+{% set role = form.get('role', 'candidate') %}
+<div class="row justify-content-center py-md-3">
+  <div class="col-sm-11 col-md-8 col-lg-6">
+    <div class="card card-soft p-4 p-md-5">
+      <h1 class="h3 fw-bold mb-1">Create your account</h1>
+      <p class="text-body-secondary mb-4">Choose how you will use RR.</p>
+      <form method="post" novalidate>
+        {{ csrf() }}
+        <div class="row g-2 mb-4">
+          <div class="col-6">
+            <input class="btn-check" type="radio" name="role" id="roleCandidate" value="candidate" {% if role != 'hirer' %}checked{% endif %}>
+            <label class="role-option w-100" for="roleCandidate"><i class="bi bi-person-badge fs-4"></i><span class="fw-semibold">Candidate</span><small>Find and apply to jobs</small></label>
+          </div>
+          <div class="col-6">
+            <input class="btn-check" type="radio" name="role" id="roleHirer" value="hirer" {% if role == 'hirer' %}checked{% endif %}>
+            <label class="role-option w-100" for="roleHirer"><i class="bi bi-briefcase fs-4"></i><span class="fw-semibold">Hirer</span><small>Post jobs and evaluate</small></label>
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label" for="name">Full name</label>
+          <input class="form-control" id="name" name="name" value="{{ form.get('name', '') }}" required maxlength="120" autocomplete="name">
+        </div>
+        <div class="mb-3">
+          <label class="form-label" for="email">Email</label>
+          <input class="form-control" type="email" id="email" name="email" value="{{ form.get('email', '') }}" required autocomplete="email">
+        </div>
+        <div class="mb-3 {% if role != 'hirer' %}d-none{% endif %}" id="companyField">
+          <label class="form-label" for="company">Company</label>
+          <input class="form-control" id="company" name="company" value="{{ form.get('company', '') }}" maxlength="160">
+        </div>
+        <div class="row g-3 mb-4">
+          <div class="col-md-6">
+            <label class="form-label" for="password">Password</label>
+            <div class="input-group">
+              <input class="form-control" type="password" id="password" name="password" required minlength="8" autocomplete="new-password">
+              <button class="btn btn-outline-secondary" type="button" data-toggle-password="password" aria-label="Show password"><i class="bi bi-eye"></i></button>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" for="confirm_password">Confirm password</label>
+            <input class="form-control" type="password" id="confirm_password" name="confirm_password" required autocomplete="new-password">
+          </div>
+          <div class="col-12"><div class="form-text mt-0">At least 8 characters with a letter and a number.</div></div>
+        </div>
+        <button class="btn btn-primary w-100 py-2" type="submit">Create account</button>
+      </form>
+      <p class="text-center small mt-4 mb-0">Already registered? <a href="{{ url_for('login') }}">Log in</a></p>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Jobs{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+  <div>
+    <h1 class="h3 fw-bold mb-0">Open positions</h1>
+    <p class="text-body-secondary mb-0">{{ jobs|length }} job{{ '' if jobs|length == 1 else 's' }} available</p>
+  </div>
+  <form class="search-form" method="get">
+    <div class="input-group">
+      <span class="input-group-text"><i class="bi bi-search"></i></span>
+      <input class="form-control" name="q" value="{{ query }}" placeholder="Search title or skill">
+      {% if query %}<a class="btn btn-outline-secondary" href="{{ url_for('jobs') }}">Clear</a>{% endif %}
+    </div>
+  </form>
+</div>
+
+{% if jobs %}
+<div class="row g-3">
+  {% for job in jobs %}
+  <div class="col-md-6 col-xl-4">
+    <a class="card card-soft card-hover h-100 text-decoration-none text-body" href="{{ url_for('job_details', job_id=job.id) }}">
+      <div class="card-body p-4 d-flex flex-column">
+        <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+          <h2 class="h6 fw-semibold mb-0">{{ job.title }}</h2>
+          {% if job.id in applied %}<span class="badge text-bg-success">Applied</span>{% endif %}
+        </div>
+        <div class="small text-body-secondary mb-2"><i class="bi bi-building me-1"></i>{{ job.hirer.company or job.hirer.name }}{% if job.experience %} · {{ job.experience }}{% endif %}</div>
+        <p class="small text-body-secondary clamp-3 mb-3">{{ job.description }}</p>
+        <div class="d-flex flex-wrap gap-1 mt-auto">
+          {% for skill in job.required_skills.replace('\n', ',').split(',')[:5] if skill.strip() %}<span class="chip chip-primary">{{ skill.strip() }}</span>{% endfor %}
+        </div>
+      </div>
+    </a>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card card-soft"><div class="empty-state"><i class="bi bi-search fs-1"></i><p class="mb-0">No jobs found{% if query %} for "{{ query }}"{% endif %}.</p></div></div>
+{% endif %}
+{% endblock %}

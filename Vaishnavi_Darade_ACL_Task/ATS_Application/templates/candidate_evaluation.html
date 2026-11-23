@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf, score_ring, score_bar, chip_list, bullet_list %}
+{% block title %}Evaluation{% endblock %}
+{% block content %}
+{% set is_hirer = current_user.role == 'hirer' %}
+{% set latest_resume = application.candidate.latest_resume %}
+<a class="small text-decoration-none" href="{{ url_for('job_applications', job_id=application.job_id) if is_hirer else url_for('dashboard') }}"><i class="bi bi-arrow-left"></i> Back</a>
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mt-2 mb-4">
+  <div>
+    <h1 class="h3 fw-bold mb-1">{{ application.candidate.name if is_hirer else application.job.title }}</h1>
+    <div class="text-body-secondary small">
+      {% if is_hirer %}{{ application.candidate.headline or application.candidate.email }} · applied for <a href="{{ url_for('job_details', job_id=application.job_id) }}">{{ application.job.title }}</a>
+      {% else %}<a href="{{ url_for('job_details', job_id=application.job_id) }}">{{ application.job.hirer.company or application.job.hirer.name }}</a>{% endif %}
+      · resume v{{ (evaluation.resume if evaluation else application.resume).version }}
+      {% if evaluation %}· evaluated {{ evaluation.created_at.strftime('%d %b %Y, %H:%M') }}{% endif %}
+    </div>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    {% if is_hirer %}
+    <a class="btn btn-outline-secondary" href="{{ url_for('resume_file', resume_id=application.resume_id) }}" target="_blank" rel="noopener"><i class="bi bi-file-earmark-text me-1"></i>Original resume</a>
+    {% endif %}
+    {% if ai_ready %}
+    <form method="post" action="{{ url_for('evaluate', application_id=application.id) }}" data-loading="Evaluating resume against the job...">{{ csrf() }}
+      <button class="btn btn-{{ 'primary' if not evaluation else 'outline-primary' }}" type="submit">
+        <i class="bi bi-arrow-repeat me-1"></i>
+        {% if not evaluation %}Run evaluation{% elif not is_hirer and latest_resume and latest_resume.id != evaluation.resume_id %}Re-evaluate with resume v{{ latest_resume.version }}{% else %}Re-evaluate{% endif %}
+      </button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+{% if not evaluation %}
+<div class="card card-soft"><div class="empty-state">
+  <i class="bi bi-hourglass-split fs-1"></i>
+  <p class="fw-semibold mb-1">Evaluation pending</p>
+  <p class="small mb-0">{{ application.error or 'This application has not been evaluated yet.' }}</p>
+  {% if not ai_ready %}<p class="small mt-2 mb-0">Add a Gemini or OpenAI key to <code>env_app.py</code> and restart to enable evaluation.</p>{% endif %}
+</div></div>
+{% else %}
+{% set ev = result.evidence %}
+{% set hirer = result.hirer_assessment %}
+{% set fb = result.candidate_feedback %}
+
+<div class="row g-4 mb-4">
+  <div class="col-lg-4">
+    <div class="card card-soft h-100"><div class="card-body p-4 text-center d-flex flex-column justify-content-center">
+      {{ score_ring(evaluation.overall, 'xl') }}
+      <div class="fw-semibold mt-3">Overall match</div>
+      {% if is_hirer and hirer.recommendation %}<span class="badge rounded-pill text-bg-{{ evaluation.overall|score_class }} mx-auto mt-2 text-capitalize">{{ hirer.recommendation }}</span>{% endif %}
+      <div class="small text-body-secondary mt-3">Depth × 40% + Spread × 25% + Evidence × 35%</div>
+    </div></div>
+  </div>
+  <div class="col-lg-8">
+    <div class="card card-soft h-100"><div class="card-body p-4">
+      <h2 class="h6 fw-semibold mb-3">Score breakdown</h2>
+      {{ score_bar('Knowledge Deepness', evaluation.deepness, '40%') }}
+      {{ score_bar('Knowledge Spread', evaluation.spread, '25%') }}
+      {{ score_bar('Projects & Supporting Evidence', evaluation.evidence, '35%') }}
+      <div class="sub-scores mt-3">
+        <div class="small text-body-secondary mb-2">Evidence is made up of</div>
+        <div class="row g-3">
+          {% for key, label, weight in [('real_world', 'Real-world work', '45%'), ('dataset_complexity', 'Dataset & implementation', '35%'), ('basic_projects', 'Basic projects', '20%')] %}
+          <div class="col-md-4">{{ score_bar(label, ev[key].score, weight) }}</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div></div>
+  </div>
+</div>
+
+<div class="card card-soft mb-4"><div class="card-body p-4">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <h2 class="h6 fw-semibold mb-0"><i class="bi bi-diagram-3 text-primary me-1"></i>Skill evidence matrix</h2>
+    <span class="small text-body-secondary">Scored by what was actually built, not by mentions</span>
+  </div>
+  {% if result.skill_evidence %}
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0 skill-table">
+      <thead><tr><th>Skill</th><th>Evidence level</th><th style="min-width:130px">Skill score</th><th>Used in</th><th>Evidence</th></tr></thead>
+      <tbody>
+      {% for s in result.skill_evidence %}
+        <tr>
+          <td class="fw-medium text-nowrap">{{ s.skill }}{% if s.required %} <span class="badge text-bg-primary-subtle text-primary-emphasis">req</span>{% endif %}</td>
+          <td class="text-nowrap">
+            <span class="level-dots" title="{{ s.level_label }}">{% for i in range(5) %}<i class="{{ 'on' if i < s.level else '' }}"></i>{% endfor %}</span>
+            <div class="small text-body-secondary">{{ s.level_label }}</div>
+          </td>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <div class="progress flex-grow-1" style="height:6px"><div class="progress-bar bg-{{ s.score|score_class }}" style="width: {{ s.score }}%"></div></div>
+              <span class="small fw-semibold">{{ s.score }}</span>
+            </div>
+            <div class="small text-body-secondary text-capitalize">{{ s.quality }} evidence</div>
+          </td>
+          <td class="small">{{ s.used_in|join(', ') if s.used_in else '—' }}</td>
+          <td class="small text-body-secondary">{{ s.evidence or '—' }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}<p class="small text-body-secondary mb-0">No skill evidence recorded.</p>{% endif %}
+</div></div>
+
+<div class="row g-4 mb-4">
+  <div class="col-md-6">
+    <div class="card card-soft h-100"><div class="card-body p-4">
+      <h2 class="h6 fw-semibold mb-3"><i class="bi bi-check2-circle text-success me-1"></i>Matching requirements</h2>
+      {{ chip_list(result.matching_requirements, 'success') }}
+    </div></div>
+  </div>
+  <div class="col-md-6">
+    <div class="card card-soft h-100"><div class="card-body p-4">
+      <h2 class="h6 fw-semibold mb-3"><i class="bi bi-x-circle text-danger me-1"></i>Gaps</h2>
+      {% set missing = result.missing_requirements|selectattr('type', 'equalto', 'missing')|list %}
+      {% set undocumented = result.missing_requirements|selectattr('type', 'equalto', 'undocumented')|list %}
+      <div class="small fw-medium mb-1">Genuinely missing</div>
+      <div class="mb-3">{% if missing %}<div class="d-flex flex-wrap gap-1">{% for m in missing %}<span class="chip chip-danger" title="{{ m.note }}">{{ m.skill }}{% if m.mandatory %} *{% endif %}</span>{% endfor %}</div>{% else %}<span class="small text-body-secondary">None</span>{% endif %}</div>
+      <div class="small fw-medium mb-1">Possibly present but not documented</div>
+      <div>{% if undocumented %}<div class="d-flex flex-wrap gap-1">{% for m in undocumented %}<span class="chip chip-warning" title="{{ m.note }}">{{ m.skill }}{% if m.mandatory %} *{% endif %}</span>{% endfor %}</div>{% else %}<span class="small text-body-secondary">None</span>{% endif %}</div>
+      <div class="small text-body-secondary mt-2">* mandatory for this job</div>
+    </div></div>
+  </div>
+</div>
+
+{% if is_hirer %}
+<div class="card card-soft mb-4"><div class="card-body p-4">
+  <h2 class="h6 fw-semibold mb-2"><i class="bi bi-clipboard-data text-primary me-1"></i>AI assessment</h2>
+  <p class="mb-4">{{ hirer.summary }}</p>
+  <div class="row g-4">
+    <div class="col-md-6"><div class="small fw-semibold mb-2 text-success">Strengths</div>{{ bullet_list(hirer.strengths) }}</div>
+    <div class="col-md-6"><div class="small fw-semibold mb-2 text-danger">Concerns</div>{{ bullet_list(hirer.concerns) }}</div>
+    <div class="col-md-6"><div class="small fw-semibold mb-2">Technical implementation details</div>{{ bullet_list(hirer.technical_details) }}</div>
+    <div class="col-md-6"><div class="small fw-semibold mb-2">Certifications & achievements</div>{{ bullet_list(hirer.certifications_achievements, 'None stated.') }}</div>
+  </div>
+</div></div>
+<div class="row g-4 mb-4">
+  <div class="col-lg-7">
+    <div class="card card-soft h-100"><div class="card-body p-4">
+      <h2 class="h6 fw-semibold mb-3">Project evidence</h2>
+      {% for p in ev.projects_reviewed %}
+      <div class="evidence-item">
+        <div class="d-flex justify-content-between gap-2"><span class="fw-medium">{{ p.project }}</span>
+          <span class="chip chip-secondary text-nowrap">{{ {'real_world': 'Real-world', 'dataset_complexity': 'Dataset & implementation', 'basic_projects': 'Basic'}.get(p.category, p.category) }}</span></div>
+        <div class="small text-body-secondary">{{ p.assessment }}</div>
+      </div>
+      {% else %}<p class="small text-body-secondary mb-0">No projects found.</p>{% endfor %}
+    </div></div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card card-soft h-100"><div class="card-body p-4">
+      <h2 class="h6 fw-semibold mb-3">Dataset complexity</h2>
+      {% for d in ev.datasets_reviewed %}
+      <div class="evidence-item">
+        <div class="d-flex justify-content-between gap-2"><span class="fw-medium">{{ d.dataset }}</span>
+          <span class="badge text-bg-{{ {'complex': 'success', 'moderate': 'warning'}.get(d.complexity, 'secondary') }} text-capitalize">{{ d.complexity }}</span></div>
+        <div class="small text-body-secondary">{{ d.work_done }}</div>
+      </div>
+      {% else %}<p class="small text-body-secondary mb-0">No datasets described.</p>{% endfor %}
+    </div></div>
+  </div>
+</div>
+{% else %}
+<div class="card card-soft mb-4"><div class="card-body p-4">
+  <h2 class="h6 fw-semibold mb-1"><i class="bi bi-lightbulb text-warning me-1"></i>How to strengthen your resume</h2>
+  <p class="small text-body-secondary mb-4">Only add what is true. These suggestions point at evidence your resume may be under-describing.</p>
+  <div class="row g-4">
+    <div class="col-md-6"><div class="small fw-semibold mb-2">Technologies that need better explanation</div>{{ bullet_list(fb.technologies_to_explain) }}</div>
+    <div class="col-md-6"><div class="small fw-semibold mb-2">Project improvements</div>{{ bullet_list(fb.project_suggestions) }}</div>
+    <div class="col-md-6"><div class="small fw-semibold mb-2">Achievements worth highlighting</div>{{ bullet_list(fb.achievements_to_highlight) }}</div>
+    <div class="col-md-6"><div class="small fw-semibold mb-2">Other suggestions</div>{{ bullet_list(fb.general_suggestions) }}</div>
+  </div>
+</div></div>
+{% endif %}
+
+<div class="accordion mb-4" id="reasoning">
+  {% for key, label, data in [('deepness', 'Knowledge Deepness', result.deepness), ('spread', 'Knowledge Spread', result.spread), ('real_world', 'Real-world work', ev.real_world), ('dataset_complexity', 'Dataset & implementation', ev.dataset_complexity), ('basic_projects', 'Basic projects', ev.basic_projects)] %}
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#r-{{ key }}">
+        <span class="me-auto">Why {{ label }} scored {{ data.score|round|int }}</span>
+      </button>
+    </h2>
+    <div id="r-{{ key }}" class="accordion-collapse collapse" data-bs-parent="#reasoning">
+      <div class="accordion-body small">
+        <p>{{ data.reasoning }}</p>
+        {% if data.evidence %}<div class="fw-semibold mb-1">Evidence cited</div>{{ bullet_list(data.evidence) }}{% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% if application.evaluations|length > 1 %}
+<div class="card card-soft"><div class="card-body p-4">
+  <h2 class="h6 fw-semibold mb-3">Evaluation history</h2>
+  <div class="table-responsive"><table class="table table-sm mb-0">
+    <thead><tr><th>Date</th><th>Resume</th><th>Overall</th><th>Depth</th><th>Spread</th><th>Evidence</th></tr></thead>
+    <tbody>{% for e in application.evaluations %}
+      <tr class="{{ 'fw-semibold' if loop.first else '' }}"><td>{{ e.created_at.strftime('%d %b %Y %H:%M') }}</td><td>v{{ e.resume.version }}</td>
+        <td>{{ e.overall|round|int }}</td><td>{{ e.deepness|round|int }}</td><td>{{ e.spread|round|int }}</td><td>{{ e.evidence|round|int }}</td></tr>
+    {% endfor %}</tbody>
+  </table></div>
+</div></div>
+{% endif %}
+{% endif %}
+{% endblock %}
