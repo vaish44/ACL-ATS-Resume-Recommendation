@@ -1,4 +1,4 @@
-ATS_Application - Resume Recommendation
+ATS_Application 
 ==========================
 
 ATS_Application helps you rank candidates by what they have actually built, not by keywords.
