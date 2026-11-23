@@ -1,4 +1,4 @@
-# ATS_Application — AI Recruitment & Evidence-Based Resume Matching
+# ATS_Application - AI Recruitment & Evidence-Based Resume Matching
 
 A Flask app where candidates upload resumes and apply to jobs. Hirers post jobs and get ranked, explainable evaluations. Candidates are scored on what they actually built, not on which keywords appear.
 
